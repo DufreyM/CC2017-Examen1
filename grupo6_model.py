@@ -33,19 +33,17 @@ NOMBRES_ZONA = {
 # base para diferenciar, se asume reparto igualitario; se debe revisar si en
 # el intercambio presencial otro grupo (p. ej. Grupo 1) aporta el desglose
 # real, y en ese caso sustituir este arreglo.
-POBLACION_ZONA = np.array([50_000, 50_000, 50_000, 50_000, 50_000])  # TODO INTERCAMBIO/SUPUESTO
+POBLACION_ZONA = np.array([50_000, 50_000, 50_000, 50_000, 50_000])
 assert POBLACION_ZONA.sum() == 250_000
 
-N_REP_POR_ZONA = 2000  # agentes representativos por zona (super-agentes)
+N_REP_POR_ZONA = 2000  # agentes representativos (super-agentes) por zona
 FACTOR_ESCALA = POBLACION_ZONA / N_REP_POR_ZONA
 
-N_PASOS = 12          # 12 bloques de 6h = 72h
-N_REALIZACIONES = 30  # minimo exigido por el enunciado
+N_PASOS = 12          # 12 bloques de 6h = 72h de horizonte de simulacion
+N_REALIZACIONES = 30  # minimo exigido por el enunciado del examen
 
 
-# ------------------------------------------------------------------
-# 1. CARGA DE DATOS DESDE EL EXCEL OFICIAL
-# ------------------------------------------------------------------
+# 1. Carga de datos desde el Excel oficial
 def cargar_datos_excel(ruta=RUTA_EXCEL):
     """Lee las 4 tablas de la hoja Datos_Grupo6 por posicion de fila fija
     (estructura del archivo entregado por el catedratico)."""
@@ -128,9 +126,7 @@ def prob_asistencia(t, z_idx, tier):
     return float(np.clip(base * factor_tier, 0.02, 0.9))
 
 
-# ------------------------------------------------------------------
-# 2. RED SOCIAL POR ZONA (grado promedio real, Seccion 3 del Excel)
-# ------------------------------------------------------------------
+# 2. Red social por zona (grado promedio real, Seccion 3 del Excel)
 def construir_red_social(seed=7):
     r = np.random.default_rng(seed)
     grafos = []
@@ -147,9 +143,7 @@ def construir_red_social(seed=7):
         offset += N_REP_POR_ZONA
     red = nx.compose_all(grafos)
 
-    # Enlaces entre zonas segun "% con contactos en otra zona" (Seccion 3):
-    # cada agente con ese atributo recibe un enlace hacia un agente de otra
-    # zona elegida al azar (representa familiares / redes sociales externas).
+    # Enlaces entre zonas segun "% con contactos en otra zona" (Seccion 3)
     n_total = N_REP_POR_ZONA * N_ZONAS
     for z in range(N_ZONAS):
         pct = REDES["pct_contacto_otra_zona"].iloc[z]
@@ -166,9 +160,7 @@ def construir_red_social(seed=7):
     return red, A, zona_de_agente
 
 
-# ------------------------------------------------------------------
-# 3. SIMULACION DE UNA REALIZACION
-# ------------------------------------------------------------------
+# 3. Simulacion de una realizacion
 def _muestrear_categoria(r, probs, n):
     """Muestra un indice de categoria (0..k-1) por agente segun probs (que
     pueden no sumar exactamente 1 por redondeo del Excel; se normalizan)."""
@@ -181,7 +173,7 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
     r = np.random.default_rng(semilla)
     n_agentes = len(zona_de_agente)
 
-    # --- Atributos individuales, muestreados de las proporciones reales ---
+    # Atributos individuales, muestreados de las proporciones reales del Excel
     mayor60 = np.zeros(n_agentes, dtype=bool)
     smartphone = np.zeros(n_agentes, dtype=bool)
     tier = np.empty(n_agentes, dtype=object)  # 'autonomo' | 'necesita_asistencia' | 'dependiente'
@@ -212,14 +204,14 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
 
     espontaneo = r.random(n_agentes) < P_ESPONTANEO
     ayuda_vecinos = r.random(n_agentes) < P_AYUDA_VECINOS  # retrasa 1 bloque su salida
-    p_expone_red = np.where(smartphone, 1.0, 0.35)  # sin smartphone: solo boca a boca (menor alcance)
+    p_expone_red = np.where(smartphone, 1.0, 0.35)  # sin smartphone, solo boca a boca
 
-    p_evacua_expo_zona = prob_evacua_al_exponerse(campana_activa)  # por zona
+    p_evacua_expo_zona = prob_evacua_al_exponerse(campana_activa)
 
-    quiere_evacuar = espontaneo.copy()  # a t=0 ya se activa el impulso espontaneo
+    quiere_evacuar = espontaneo.copy()  # el impulso espontaneo ya se activa en t=0
     evacuado = np.zeros(n_agentes, dtype=bool)
     asistido = np.zeros(n_agentes, dtype=bool)
-    retraso_pendiente = ayuda_vecinos.copy()  # trae el rasgo "ayuda a vecinos antes de evacuar"
+    retraso_pendiente = ayuda_vecinos.copy()
     ya_espero_su_bloque = np.zeros(n_agentes, dtype=bool)  # ya consumio su unico bloque de retraso
 
     quiere_pero_no_puede = np.zeros((N_PASOS, n_agentes), dtype=bool)
@@ -230,8 +222,8 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
     flujo_destino_zona_paso = np.zeros((N_PASOS, N_ZONAS, 2))  # [:, :, 0]=oficial, [:,:,1]=otra zona
 
     for t in range(N_PASOS):
-        # --- Difusion de informacion por la red social (hop-limitado por la
-        # velocidad de propagacion real de cada zona) ---
+        # Difusion de informacion por la red, limitada a los hops que la
+        # velocidad de propagacion real de cada zona permite en un bloque
         hops = {z: max(1, int(round(6.0 / REDES["velocidad_prop_h_salto"].iloc[z])))
                 for z in range(N_ZONAS)}
         frontera = evacuado.copy()
@@ -256,11 +248,8 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
             idx_mask = np.where(mask_z)[0]
             quiere_evacuar[idx_mask[decide]] = True
 
-        # --- Filtra a quienes retrasan su salida por ayudar a vecinos ---
-        # (rasgo "ayuda a vecinos antes de evacuar": la primera vez que el
-        # agente quiere evacuar, si tiene el rasgo, espera un bloque de 6h
-        # antes de quedar habilitado para salir; el bloque siguiente ya
-        # puede evacuar con normalidad)
+        # Rasgo "ayuda a vecinos": la primera vez que el agente quiere
+        # evacuar espera un bloque antes de quedar habilitado para salir
         primera_vez_con_retraso = quiere_evacuar & retraso_pendiente & (~ya_espero_su_bloque) & (~evacuado)
         ya_espero_su_bloque |= primera_vez_con_retraso
         habilitado_por_espera = (~retraso_pendiente) | ya_espero_su_bloque
@@ -283,7 +272,7 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
         nuevos_evacuados = autonomos | (vulnerables_listos & asistido)
         evacuado |= nuevos_evacuados
 
-        # --- Ruta / destino preferido (comportamiento real, Seccion 3) ---
+        # Ruta y destino preferido segun comportamiento real (Seccion 3)
         idx_nuevos = np.where(nuevos_evacuados)[0]
         if len(idx_nuevos) > 0:
             pct_otra = REDES["pct_contacto_otra_zona"].to_numpy()[zona_de_agente[idx_nuevos]]
