@@ -7,10 +7,10 @@ vulnerabilidad, las redes sociales y la desinformación afectan la evacuación d
 
 ## Entregables principales
 
+- [Informe final en PDF](reports/Examen%20Practico%201.pdf) y
+  [fuente editable en Word](reports/Examen%20Practico%201.docx).
 - [Notebook ejecutable](notebooks/grupo6_modelo.ipynb): modelo, Monte Carlo,
   intervalos de confianza, análisis y respuestas a las tres preguntas.
-- [Reporte técnico en PDF](reports/reporte_grupo6.pdf) y
-  [fuente Markdown](reports/reporte_grupo6.md).
 - [Outputs para el Grupo 1](data/processed/): flujo de desplazados, población
   sin asistencia y rutas preferidas.
 - [Enunciado del examen](docs/enunciado_examen.md).
@@ -24,7 +24,7 @@ vulnerabilidad, las redes sociales y la desinformación afectan la evacuación d
 │   └── processed/    # CSV generados por el notebook
 ├── docs/             # Enunciado y registro requerido de uso de IA
 ├── notebooks/        # Análisis principal y resultados visibles
-├── reports/          # Reporte técnico en Markdown y PDF
+├── reports/          # Informe final editable y versión PDF de entrega
 ├── scripts/          # Construcción del notebook y conversión del reporte
 ├── src/               # Lógica reutilizable del modelo ABM
 ├── tests/             # Pruebas de integridad y comportamiento básico
@@ -51,12 +51,9 @@ python scripts/build_notebook.py
 python -m nbconvert --execute --to notebook --inplace --ExecutePreprocessor.timeout=900 notebooks/grupo6_modelo.ipynb
 ```
 
-La ejecución actualiza automáticamente los tres CSV de `data/processed/`.
-Para regenerar el reporte PDF después de editar su fuente:
-
-```powershell
-python scripts/convertir_a_pdf.py reports/reporte_grupo6.md reports/reporte_grupo6.pdf
-```
+La ejecución actualiza automáticamente los tres CSV de `data/processed/`. El
+informe oficial se edita en `reports/Examen Practico 1.docx` y se exporta a
+`reports/Examen Practico 1.pdf` conservando su formato original.
 
 ## Diseño del modelo
 

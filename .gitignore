@@ -6,6 +6,7 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
+tmp/
 
 # Material de apoyo personal que no forma parte de la entrega.
 guion_video.md
