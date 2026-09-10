@@ -177,22 +177,25 @@ daño y aislamiento según el índice de rezago, precisamente porque la
 difusión de información es más lenta ahí.
 
 ### Pregunta 1: Autoevacuación en Z1 y Z5 en las primeras 12 horas
-- **Z1:** 70.6% de la población no autónoma (IC95% entre 70.1% y 71.0%)
-  quiso evacuar en las primeras 12 horas y no pudo por falta de asistencia
-  a tiempo.
-- **Z5:** 61.6% (IC95% entre 61.2% y 62.2%).
-- El backlog de personas "quiere pero no puede" en Z1 alcanza su **pico en
-  el bloque 3 (18 horas)**, con 14,386 personas en espera, y solo baja a la
-  mitad de ese pico hacia el bloque 8 (48 horas). En Z5 el pico es aún
-  mayor, 17,232 personas en el bloque 4 (24 horas), y a las 72 horas
-  todavía quedan 5,749 personas sin asistencia en Z5 y 3,627 en Z1. El
-  bloque con más nuevas evacuaciones, es decir el de mayor efecto marginal
-  de reforzar la asistencia, es el **bloque 2 (6 a 12 horas) en Z1** y el
-  **bloque 1 (0 a 6 horas) en Z5**. Dicho de otra forma, la ventana crítica
-  para desplegar recursos de rescate es **inmediatamente después del
-  sismo**, no horas después: cuanto más se tarda el primer refuerzo, más
-  crece el backlog antes de empezar a bajar, y ese backlog nunca llega a
-  cero dentro del horizonte de 72 horas simulado.
+
+**Z1.** El 70.6% de la población no autónoma (IC95% entre 70.1% y 71.0%)
+quiso evacuar en las primeras 12 horas y no pudo por falta de asistencia a
+tiempo.
+
+**Z5.** El 61.6% no pudo hacerlo (IC95% entre 61.2% y 62.2%).
+
+**Ventana crítica.** El backlog de personas "quiere pero no puede" en Z1
+alcanza su **pico en el bloque 3 (18 horas)**, con 14,386 personas en
+espera, y solo baja a la mitad de ese pico hacia el bloque 8 (48 horas). En
+Z5 el pico es aún mayor, 17,232 personas en el bloque 4 (24 horas), y a las
+72 horas todavía quedan 5,749 personas sin asistencia en Z5 y 3,627 en Z1.
+El bloque con más nuevas evacuaciones, es decir el de mayor efecto marginal
+de reforzar la asistencia, es el **bloque 2 (6 a 12 horas) en Z1** y el
+**bloque 1 (0 a 6 horas) en Z5**. Dicho de otra forma, la ventana crítica
+para desplegar recursos de rescate es **inmediatamente después del sismo**,
+no horas después: cuanto más se tarda el primer refuerzo, más crece el
+backlog antes de empezar a bajar, y ese backlog nunca llega a cero dentro
+del horizonte de 72 horas simulado.
 
 ### Pregunta 2: Rutas modeladas contra rutas óptimas
 El mayor cuello de botella **no es de capacidad vial** (ese dato pertenece
