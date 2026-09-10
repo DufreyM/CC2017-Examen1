@@ -1,0 +1,10 @@
+# Mantiene diffs legibles y finales de linea consistentes entre sistemas.
+*.py text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.txt text eol=lf
+*.ipynb text eol=lf
+
+# Entregables y fuentes binarias.
+*.pdf binary
+*.xlsx binary
