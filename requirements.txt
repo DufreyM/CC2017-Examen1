@@ -10,7 +10,3 @@ openpyxl>=3.1
 nbformat>=5.10
 nbconvert>=7.16
 ipykernel>=6.29
-
-# Generacion del reporte PDF
-Markdown>=3.6
-xhtml2pdf>=0.2.16

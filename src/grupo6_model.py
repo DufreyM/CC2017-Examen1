@@ -170,8 +170,63 @@ def _muestrear_categoria(r, probs, n):
     return r.choice(len(probs), size=n, p=probs)
 
 
-def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
+def propagar_informacion(A, fuentes, zona_de_agente):
+    """Propaga la informacion sin exceder el alcance permitido por zona.
+
+    El Excel expresa la velocidad en horas por salto. En un bloque de seis
+    horas, un agente de cada zona solo puede quedar expuesto si la distancia
+    recorrida no supera ``round(6 / velocidad_prop_h_salto)``. El limite se
+    aplica a la zona del agente receptor, no como un maximo global.
+    """
+    fuentes = np.asarray(fuentes, dtype=bool)
+    zona_de_agente = np.asarray(zona_de_agente, dtype=int)
+    if fuentes.shape != zona_de_agente.shape:
+        raise ValueError("fuentes y zona_de_agente deben tener la misma forma")
+
+    saltos_por_zona = np.maximum(
+        1,
+        np.rint(6.0 / REDES["velocidad_prop_h_salto"].to_numpy()).astype(int),
+    )
+    limite_por_agente = saltos_por_zona[zona_de_agente]
+
+    frontera = fuentes.copy()
+    alcanzado = fuentes.copy()
+    for salto in range(1, int(saltos_por_zona.max()) + 1):
+        vecinos_frontera = np.asarray(A @ frontera.astype(float)).ravel() > 0
+        nueva_frontera = (
+            vecinos_frontera
+            & (~alcanzado)
+            & (limite_por_agente >= salto)
+        )
+        alcanzado |= nueva_frontera
+        frontera = nueva_frontera
+        if not frontera.any():
+            break
+    return alcanzado
+
+
+def correr_realizacion(
+    A,
+    red,
+    zona_de_agente,
+    semilla,
+    campana_activa=False,
+    efectividad_senalizacion=0.0,
+):
+    """Ejecuta una realizacion del ABM durante los doce bloques.
+
+    ``efectividad_senalizacion`` representa la fraccion de personas que iban
+    a desviarse hacia otra zona pero que una senalizacion dirigida logra
+    mantener en la ruta al refugio oficial. El escenario base usa 0.0 y el
+    analisis de intervencion de la Pregunta 2 usa 0.5 como supuesto explicito.
+    """
+    if not 0.0 <= efectividad_senalizacion <= 1.0:
+        raise ValueError("efectividad_senalizacion debe estar entre 0 y 1")
+
     r = np.random.default_rng(semilla)
+    r_ruta = np.random.default_rng(1_000_000 + semilla)
+    r_intervencion = np.random.default_rng(2_000_000 + semilla)
+    r_destino = np.random.default_rng(3_000_000 + semilla)
     n_agentes = len(zona_de_agente)
 
     # Atributos individuales, muestreados de las proporciones reales del Excel
@@ -218,25 +273,17 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
     quiere_pero_no_puede = np.zeros((N_PASOS, n_agentes), dtype=bool)
     evacuados_por_zona_paso = np.zeros((N_PASOS, N_ZONAS))
     nuevos_por_zona_paso = np.zeros((N_PASOS, N_ZONAS))
-    # destino: 0 = refugio oficial de su zona, 1 = "se dirige a otra zona" (lazo social)
-    destino_otra_zona = np.zeros(n_agentes, dtype=bool)
-    flujo_destino_zona_paso = np.zeros((N_PASOS, N_ZONAS, 2))  # [:, :, 0]=oficial, [:,:,1]=otra zona
+    # Matriz por bloque, zona de origen y zona de destino. La diagonal es el
+    # refugio oficial de la zona; las celdas fuera de la diagonal son viajes
+    # hacia otra zona por lazos sociales.
+    destino_zona = np.asarray(zona_de_agente, dtype=int).copy()
+    flujo_destino_zona_paso = np.zeros((N_PASOS, N_ZONAS, N_ZONAS))
+    redirigidos_por_zona_paso = np.zeros((N_PASOS, N_ZONAS))
 
     for t in range(N_PASOS):
-        # Difusion de informacion por la red, limitada a los hops que la
-        # velocidad de propagacion real de cada zona permite en un bloque
-        hops = {z: max(1, int(round(6.0 / REDES["velocidad_prop_h_salto"].iloc[z])))
-                for z in range(N_ZONAS)}
-        frontera = evacuado.copy()
-        alcanzado = evacuado.copy()
-        max_hops = max(hops.values())
-        for _ in range(max_hops):
-            vecinos_frontera = A @ frontera.astype(float) > 0
-            nueva_frontera = vecinos_frontera & (~alcanzado)
-            alcanzado |= nueva_frontera
-            frontera = nueva_frontera
-            if not frontera.any():
-                break
+        # La velocidad de cada zona limita cuantos saltos puede recorrer la
+        # informacion durante este bloque de seis horas.
+        alcanzado = propagar_informacion(A, evacuado, zona_de_agente)
         recien_expuesto = alcanzado & (~quiere_evacuar) & (~evacuado)
         acepta_exposicion = r.random(n_agentes) < p_expone_red
         recien_expuesto &= acepta_exposicion
@@ -252,9 +299,11 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
         # Rasgo "ayuda a vecinos": la primera vez que el agente quiere
         # evacuar espera un bloque antes de quedar habilitado para salir
         primera_vez_con_retraso = quiere_evacuar & retraso_pendiente & (~ya_espero_su_bloque) & (~evacuado)
-        ya_espero_su_bloque |= primera_vez_con_retraso
         habilitado_por_espera = (~retraso_pendiente) | ya_espero_su_bloque
         listos_para_salir = quiere_evacuar & (~evacuado) & habilitado_por_espera
+        # Se marca la espera despues de calcular los habilitados para que el
+        # agente salga, como minimo, en el bloque siguiente.
+        ya_espero_su_bloque |= primera_vez_con_retraso
 
         autonomos = listos_para_salir & (tier == "autonomo")
         vulnerables_listos = listos_para_salir & (tier != "autonomo")
@@ -276,22 +325,46 @@ def correr_realizacion(A, red, zona_de_agente, semilla, campana_activa=False):
         # Ruta y destino preferido segun comportamiento real (Seccion 3)
         idx_nuevos = np.where(nuevos_evacuados)[0]
         if len(idx_nuevos) > 0:
-            pct_otra = REDES["pct_contacto_otra_zona"].to_numpy()[zona_de_agente[idx_nuevos]]
-            va_a_otra_zona = r.random(len(idx_nuevos)) < pct_otra
-            destino_otra_zona[idx_nuevos] = va_a_otra_zona
+            origenes = zona_de_agente[idx_nuevos]
+            pct_otra = REDES["pct_contacto_otra_zona"].to_numpy()[origenes]
+            iba_a_otra_zona = r_ruta.random(len(idx_nuevos)) < pct_otra
+            redirigido = iba_a_otra_zona & (
+                r_intervencion.random(len(idx_nuevos)) < efectividad_senalizacion
+            )
+            va_a_otra_zona = iba_a_otra_zona & (~redirigido)
+
+            # El Excel no incluye una matriz origen-destino. Para poder
+            # entregar una zona concreta se documenta el supuesto neutral de
+            # distribuir el destino social uniformemente entre las otras
+            # cuatro zonas.
+            desplazamiento = r_destino.integers(1, N_ZONAS, size=len(idx_nuevos))
+            destino_social = (origenes + desplazamiento) % N_ZONAS
+            destino_zona[idx_nuevos] = np.where(
+                va_a_otra_zona,
+                destino_social,
+                origenes,
+            )
+
+            for z in range(N_ZONAS):
+                redirigidos_por_zona_paso[t, z] = (
+                    redirigido & (origenes == z)
+                ).sum() * FACTOR_ESCALA[z]
 
         for z in range(N_ZONAS):
             mask_z = zona_de_agente == z
             evacuados_por_zona_paso[t, z] = evacuado[mask_z].sum() * FACTOR_ESCALA[z]
             nuevos_mask = nuevos_evacuados & mask_z
             nuevos_por_zona_paso[t, z] = nuevos_mask.sum() * FACTOR_ESCALA[z]
-            flujo_destino_zona_paso[t, z, 0] = (nuevos_mask & (~destino_otra_zona)).sum() * FACTOR_ESCALA[z]
-            flujo_destino_zona_paso[t, z, 1] = (nuevos_mask & destino_otra_zona).sum() * FACTOR_ESCALA[z]
+            for destino in range(N_ZONAS):
+                flujo_destino_zona_paso[t, z, destino] = (
+                    nuevos_mask & (destino_zona == destino)
+                ).sum() * FACTOR_ESCALA[z]
 
     return {
         "evacuados_por_zona_paso": evacuados_por_zona_paso,
         "nuevos_por_zona_paso": nuevos_por_zona_paso,
         "flujo_destino_zona_paso": flujo_destino_zona_paso,
+        "redirigidos_por_zona_paso": redirigidos_por_zona_paso,
         "quiere_pero_no_puede": quiere_pero_no_puede,
         "tier": tier,
         "zona_de_agente": zona_de_agente,
