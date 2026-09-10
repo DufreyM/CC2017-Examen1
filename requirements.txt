@@ -1,0 +1,16 @@
+# Simulacion y analisis numerico
+numpy>=2.0
+scipy>=1.13
+pandas>=2.2
+matplotlib>=3.9
+networkx>=3.3
+openpyxl>=3.1
+
+# Construccion y ejecucion del notebook
+nbformat>=5.10
+nbconvert>=7.16
+ipykernel>=6.29
+
+# Generacion del reporte PDF
+Markdown>=3.6
+xhtml2pdf>=0.2.16
