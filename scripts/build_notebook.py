@@ -1,5 +1,10 @@
-"""Genera grupo6_modelo.ipynb a partir de celdas definidas aqui."""
+"""Genera el notebook principal a partir de las celdas definidas aqui."""
+from pathlib import Path
+
 import nbformat as nbf
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+NOTEBOOK_PATH = PROJECT_ROOT / "notebooks" / "grupo6_modelo.ipynb"
 
 nb = nbf.v4.new_notebook()
 cells = []
@@ -20,7 +25,7 @@ md("""\
 Este notebook implementa un **modelo basado en agentes (ABM)** de la decision
 de evacuacion de la poblacion tras el terremoto, con **todos los parametros
 cargados directamente del archivo Excel oficial del catedratico**
-(`data/Grupo6_ComportamientoPoblacional.xlsx`, hoja `Datos_Grupo6`):
+(`data/raw/Grupo6_ComportamientoPoblacional.xlsx`, hoja `Datos_Grupo6`):
 
 - Composicion demografica y vulnerabilidad real por zona (3 niveles:
   autonomo / necesita asistencia / dependiente).
@@ -35,7 +40,7 @@ cargados directamente del archivo Excel oficial del catedratico**
 > vulnerabilidad). El enunciado general solo da el total de la ciudad
 > (250,000 hab.), sin desglose por zona. Se asume reparto igualitario
 > (50,000/zona) hasta que se confirme lo contrario en el intercambio
-> presencial. Ver `grupo6_model.py`, variable `POBLACION_ZONA`.
+> presencial. Ver `src/grupo6_model.py`, variable `POBLACION_ZONA`.
 
 ### Justificacion del paradigma (ABM)
 Se elige **ABM** porque la pregunta central de este grupo depende de
@@ -73,13 +78,28 @@ la propagacion de una decision sobre una poblacion heterogenea y su red
 social.""")
 
 code("""\
+import sys
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
 import pandas as pd
 import networkx as nx
 
-import grupo6_model as m
+PROJECT_ROOT = Path.cwd().resolve()
+if not (PROJECT_ROOT / "src").is_dir():
+    PROJECT_ROOT = PROJECT_ROOT.parent
+if not (PROJECT_ROOT / "src").is_dir():
+    raise FileNotFoundError("No se encontro la raiz del proyecto (directorio src).")
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src import grupo6_model as m
+
+OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 plt.rcParams["figure.figsize"] = (9, 5)
 pd.set_option("display.width", 120)
@@ -116,7 +136,7 @@ la informacion que circula sea correcta vs. rumor (todo Seccion 3); y
 `pct_autonomo/necesita_asistencia/dependiente` + `indice_riesgo_rezago`
 (Seccion 4).
 
-**Reglas de comportamiento / ecuaciones de estado** (`grupo6_model.py`,
+**Reglas de comportamiento / ecuaciones de estado** (`src/grupo6_model.py`,
 funcion `correr_realizacion`):
 1. **Impulso espontaneo:** una fraccion `P_ESPONTANEO=0.35` de agentes
    decide evacuar desde el bloque 0 (el Excel documenta que el tiempo de
@@ -338,7 +358,7 @@ Grupo 6 debe entregar a Grupo 1: **(a)** proyeccion de flujo de desplazados
 por zona y bloque, con destino; **(b)** estimacion de personas que NO podran
 evacuar sin asistencia en Z1 y Z5 por bloque; **(c)** mapa de rutas
 preferidas por comportamiento (no las optimas). Los tres se calculan a
-continuacion y se exportan a `data/`.""")
+continuacion y se exportan a `data/processed/`.""")
 
 code("""\
 # (a) Proyeccion de flujo de desplazados por zona y momento, con destino
@@ -357,7 +377,7 @@ for t in range(m.N_PASOS):
             "nuevos_hacia_otra_zona": flujo_destino_medio[t, z, 1],
         })
 df_a = pd.DataFrame(filas_a)
-df_a.to_csv("data/output_a_flujo_desplazados.csv", index=False)
+df_a.to_csv(OUTPUT_DIR / "output_a_flujo_desplazados.csv", index=False)
 df_a.head(10)
 """)
 
@@ -384,7 +404,7 @@ for zona_nombre in ("Z1", "Z5"):
             "ic95_inferior": lo_b[t], "ic95_superior": hi_b[t],
         })
 df_b = pd.DataFrame(filas_b)
-df_b.to_csv("data/output_b_atrapados_sin_asistencia.csv", index=False)
+df_b.to_csv(OUTPUT_DIR / "output_b_atrapados_sin_asistencia.csv", index=False)
 
 fig, ax = plt.subplots()
 for zona_nombre in ("Z1", "Z5"):
@@ -414,7 +434,7 @@ for z in range(m.N_ZONAS):
         "pct_que_se_desvia_del_refugio_oficial": total_otra / total if total > 0 else 0.0,
     })
 df_c = pd.DataFrame(filas_c).sort_values("pct_que_se_desvia_del_refugio_oficial", ascending=False)
-df_c.to_csv("data/output_c_rutas_preferidas.csv", index=False)
+df_c.to_csv(OUTPUT_DIR / "output_c_rutas_preferidas.csv", index=False)
 df_c
 """)
 
@@ -619,7 +639,7 @@ Las tres preguntas de Grupo 6 son de "Analisis propio", ninguna de
 dia del intercambio si aplica alguna entrega informal, por ejemplo el
 desglose real de poblacion por zona, que este modelo tuvo que suponer
 igualitario. Si se recibe, actualizar `POBLACION_ZONA` en
-`grupo6_model.py` y volver a correr este notebook completo.)*""")
+`src/grupo6_model.py` y volver a correr este notebook completo.)*""")
 
 md("""\
 ## 10. Limitaciones y propuestas de mejora
@@ -652,5 +672,6 @@ md("""\
    multiplicaria el costo computacional.""")
 
 nb["cells"] = cells
-nbf.write(nb, "grupo6_modelo.ipynb")
-print("Notebook generado.")
+NOTEBOOK_PATH.parent.mkdir(parents=True, exist_ok=True)
+nbf.write(nb, NOTEBOOK_PATH)
+print(f"Notebook generado: {NOTEBOOK_PATH}")

@@ -3,7 +3,7 @@ Modelo ABM de Grupo 6 (Comportamiento de la Poblacion y Toma de Decisiones),
 CC2017 - Examen Practico, terremoto Ciudad UVG.
 
 Todos los parametros se cargan directamente desde el archivo Excel oficial
-del catedratico: data/Grupo6_ComportamientoPoblacional.xlsx (hoja
+del catedratico: data/raw/Grupo6_ComportamientoPoblacional.xlsx (hoja
 "Datos_Grupo6"). La UNICA cifra que ese archivo no entrega es la poblacion
 absoluta por zona (solo da porcentajes demograficos, de vulnerabilidad y de
 red social) -- se documenta como supuesto explicito mas abajo
@@ -18,7 +18,8 @@ import numpy as np
 import networkx as nx
 import pandas as pd
 
-RUTA_EXCEL = Path(__file__).parent / "data" / "Grupo6_ComportamientoPoblacional.xlsx"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RUTA_EXCEL = PROJECT_ROOT / "data" / "raw" / "Grupo6_ComportamientoPoblacional.xlsx"
 
 ZONAS = ["Z1", "Z2", "Z3", "Z4", "Z5"]
 N_ZONAS = len(ZONAS)
