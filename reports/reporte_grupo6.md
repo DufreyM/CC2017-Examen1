@@ -2,8 +2,8 @@
 ## CC2017, Modelación y Simulación, Examen Práctico
 
 > Todos los parámetros de este informe provienen del archivo Excel oficial
-> del catedrático (`data/Grupo6_ComportamientoPoblacional.xlsx`, hoja
-> `Datos_Grupo6`), cargado directamente en `grupo6_model.py`. La única
+> del catedrático (`data/raw/Grupo6_ComportamientoPoblacional.xlsx`, hoja
+> `Datos_Grupo6`), cargado directamente en `src/grupo6_model.py`. La única
 > excepción documentada es la **población absoluta por zona**, que el Excel
 > no incluye (solo da porcentajes demográficos y de vulnerabilidad). Se
 > asume reparto igualitario de los 250,000 habitantes, 50,000 por zona,
@@ -69,7 +69,7 @@ probabilidad de que la información que circula sea correcta o sea rumor
 (Sección 3); y porcentaje autónomo, necesita asistencia y dependiente, más
 el índice de riesgo de rezago (Sección 4).
 
-**Reglas de comportamiento y ecuaciones de estado** (`grupo6_model.py`,
+**Reglas de comportamiento y ecuaciones de estado** (`src/grupo6_model.py`,
 función `correr_realizacion`):
 1. **Impulso espontáneo:** 35% de los agentes decide evacuar desde el
    bloque 0 (el tiempo de decisión real, unos 18 minutos en promedio, es
@@ -148,7 +148,7 @@ Sección 1 y 4 del Excel, zona por zona.
 
 ## 3. Resultados y análisis
 
-*(30 realizaciones por escenario. Ver `grupo6_modelo.ipynb` para las
+*(30 realizaciones por escenario. Ver `notebooks/grupo6_modelo.ipynb` para las
 trayectorias completas y las gráficas generadas.)*
 
 **Verificación del modelo:** antes de interpretar resultados se confirmó
@@ -245,14 +245,14 @@ decimal exacto que reporta el Excel para ese parámetro.
 
 Según la tabla de dependencias del examen, **Grupo 6 es proveedor puro**:
 entrega la proyección de flujo de desplazados a Grupo 1 (outputs a, b y c,
-ver `data/output_a_flujo_desplazados.csv`,
+ver `data/processed/output_a_flujo_desplazados.csv`,
 `output_b_atrapados_sin_asistencia.csv` y `output_c_rutas_preferidas.csv`),
 pero no figura como receptor formal de ningún otro grupo. Las tres
 preguntas de Grupo 6 son de análisis propio. *(Pendiente: confirmar con el
 catedrático el día del intercambio si aplica alguna entrega informal, en
 particular el desglose real de población por zona, que este modelo tuvo
 que suponer igualitario por no venir en el Excel. Si se recibe, actualizar
-`POBLACION_ZONA` en `grupo6_model.py` y volver a correr el notebook
+`POBLACION_ZONA` en `src/grupo6_model.py` y volver a correr el notebook
 completo; la estructura del modelo no cambia.)*
 
 ## 5. Limitaciones y propuestas de mejora
